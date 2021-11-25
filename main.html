@@ -1,0 +1,201 @@
+<html
+    window-width="900dip"
+    window-height="400dip"
+>
+<head>
+<title>test project</title>
+<style>
+
+@import url(vendor/8ctopus/sciter-logger/src/logger.css);
+
+body {
+    border-spacing: 1em;
+}
+
+</style>
+<script type="module">
+
+import * as sys from "@sys";
+import * as sciter from "@sciter";
+
+import {logger} from "vendor/8ctopus/sciter-logger/src/logger.js";
+import * as utils from "vendor/8ctopus/sciter-utils/src/utils.js";
+
+// capture unhandled exceptions
+logger.capture(unhandledExceptionHandler);
+
+// initialize logger
+logger.init();
+
+// attach logger to console
+logger.attach();
+
+document.ready = function() {
+    // redirect logger output to plaintext
+    logger.plaintext(document.$("plaintext#logger"));
+
+    // add support for F5 reload
+    utils.addReloadWindow();
+
+    // close window on escape key press
+    utils.closeWindowOnEscape(Window.this);
+
+    // center window on screen
+    utils.centerWindow(Window.this, "screen");
+
+    // bring window to front and set input focus
+    if (Window.this.activate(true))
+        console.log("Activate window - OK");
+    else
+        console.error("Activate window - FAILED");
+
+    // log sciter version
+    console.debug(utils.sciterInfo());
+}
+
+/**
+ * Unhandled exception handler
+ * @param  Error|String e
+ * @return void
+ */
+function unhandledExceptionHandler(e)
+{
+    // log exception using exception if it exists, error otherwise
+    typeof console.exception === "function" ? console.exception(e) : console.error(e);
+}
+
+let server     = undefined;
+let client     = undefined;
+let connection = undefined;
+
+document.on("click", "button#server-start", function() {
+    if (server !== undefined) {
+        console.log("Server already started");
+        return;
+    }
+
+    // create pipe
+    server = new sys.Pipe();
+
+    // attach server to pipe
+    server.bind("test");
+
+    console.log("Start server - OK");
+});
+
+document.on("click", "button#server-stop", function() {
+    if (server === undefined) {
+        console.log("Server already stopped");
+        return;
+    }
+
+    console.debug("close", server.close());
+    server = undefined;
+
+    console.log("Stop server - OK");
+});
+
+document.on("click", "button#server-listen", async function() {
+    // listen on pipe
+    server.listen();
+
+    console.log("Server listening...");
+
+    while (true) {
+        // wait for client to connect
+        let conn = await server.accept();
+
+        // handle connection
+        await handleConnection(conn);
+
+        conn = undefined;
+    }
+});
+
+async function handleConnection(conn)
+{
+    console.log(`Client connected - ${conn.getpeername()} <-> ${conn.getsockname()}`);
+
+    while (true) {
+        let data = await conn.read();
+
+        if (!data) {
+            console.log('Client disconnected');
+            return;
+        }
+
+        console.log("Received:", sciter.decode(data));
+
+        //conn.write(new Uint8Array(data));
+    }
+}
+
+document.on("click", "button#client-start", function() {
+    if (client !== undefined) {
+        console.log("Client already started");
+        return;
+    }
+
+    // create pipe
+    client = new sys.Pipe();
+
+    console.log("Start client - OK");
+});
+
+document.on("click", "button#client-connect", async function() {
+    if (client === undefined) {
+        console.log("Client not started");
+        return;
+    }
+
+    // connect to server
+    connection = await client.connect("test");
+
+    console.log("Connect client - OK", client.getpeername());
+});
+
+document.on("click", "button#client-message", async function() {
+    if (client === undefined) {
+        console.log("Client not started");
+        return;
+    }
+
+    // send message over pipe to server
+    await client.write("message 1");
+
+    client.write("message 2");
+});
+
+document.on("click", "button#client-disconnect", function() {
+    // close client
+    client.close();
+
+    console.log("Disconnect client - OK");
+});
+
+document.on("click", "button#client-stop", function() {
+    if (client === undefined) {
+        console.log("Client already stopped");
+        return;
+    }
+
+    client.close();
+    client = undefined;
+
+    console.log("Stop client - OK");
+});
+
+</script>
+</head>
+<body>
+    <button #server-start>server start</button>
+    <button #server-stop>server stop</button>
+    <button #server-listen>server listen</button>
+    <button #client-start>client start</button>
+    <button #client-connect>client connect</button>
+    <button #client-message>client send message</button>
+    <button #client-disconnect>client disconnect</button>
+    <button #client-stop>client stop</button>
+    <plaintext #logger readonly />
+</body>
+</html>
