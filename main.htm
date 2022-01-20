@@ -53,9 +53,9 @@ document.on("ready", function() {
     console.debug(Utils.sciterInfo());
 });
 
-let server     = undefined;
-let client     = undefined;
-let connection = undefined;
+let server;
+let client;
+let connection;
 
 document.on("click", "button#server-start", function() {
     if (server !== undefined) {
@@ -101,15 +101,14 @@ document.on("click", "button#server-listen", async function() {
     }
 });
 
-async function handleConnection(conn)
-{
+async function handleConnection(conn) {
     console.log(`Client connected - ${conn.getpeername()} <-> ${conn.getsockname()}`);
 
     while (true) {
-        let data = await conn.read();
+        const data = await conn.read();
 
         if (!data) {
-            console.log('Client disconnected');
+            console.log("Client disconnected");
             return;
         }
 
