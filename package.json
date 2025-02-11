@@ -1,6 +1,6 @@
 {
   "name": "sciter-pipes",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Experimenting with [sciter.js](https://sciter.com/) pipes.",
   "scripts": {
     "install-sdk": "node ./node_modules/sciter-sandbox/scripts/install.mjs cleanup",
